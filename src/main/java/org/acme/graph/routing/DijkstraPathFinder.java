@@ -11,6 +11,7 @@ import org.acme.graph.model.Edge;
 import org.acme.graph.model.Graph;
 import org.acme.graph.model.Path;
 import org.acme.graph.model.PathNode;
+import org.acme.graph.model.PathTree;
 import org.acme.graph.model.Vertex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,17 +28,13 @@ public class DijkstraPathFinder {
 	private static final Logger log = LogManager.getLogger(DijkstraPathFinder.class);
 
 	private Graph graph;
-	
-	private Map<Vertex,PathNode> nodes;
+	private PathTree pathTree;
 
 	public DijkstraPathFinder(Graph graph) {
 		this.graph = graph;
-		this.nodes = new HashMap<>();
+		this.pathTree = new PathTree();
 	}
 	
-	public PathNode getNode(Vertex vertex) {
-		return nodes.get(vertex);
-	}
 
 	/**
 	 * Calcul du plus court chemin entre une origine et une destination
@@ -48,13 +45,13 @@ public class DijkstraPathFinder {
 	 */
 	public Path findPath(Vertex origin, Vertex destination) {
 		log.info("findPath({},{})...", origin, destination);
-		initGraph(origin);
+		pathTree = new PathTree(graph,origin);
 		Vertex current;
 		while ((current = findNextVertex()) != null) {
 			visit(current);
-			if (getNode(destination).getReachingEdge() != null) {
+			if (pathTree.getNode(destination).getReachingEdge() != null) {
 				log.info("findPath({},{}) : path found", origin, destination);
-				return new Path(buildPath(destination));
+				return new Path(pathTree.getPath(destination));
 			}
 		}
 		log.info("findPath({},{}) : path not found", origin, destination);
@@ -79,16 +76,16 @@ public class DijkstraPathFinder {
 			 * Convervation de arc permettant d'atteindre le sommet avec un meilleur coût
 			 * sachant que les sommets non atteint ont pour coût "POSITIVE_INFINITY"
 			 */
-			double newCost = getNode(vertex).getCost() + outEdge.getCost();
-			if (newCost < getNode(reachedVertex).getCost()) {
-				getNode(reachedVertex).setCost(newCost);
-				getNode(reachedVertex).setReachingEdge(outEdge);
+			double newCost = pathTree.getNode(vertex).getCost() + outEdge.getCost();
+			if (newCost < pathTree.getNode(reachedVertex).getCost()) {
+				pathTree.getNode(reachedVertex).setCost(newCost);
+				pathTree.getNode(reachedVertex).setReachingEdge(outEdge);
 			}
 		}
 		/*
 		 * On marque le sommet comme visité
 		 */
-		getNode(vertex).setVisited(true);
+		pathTree.getNode(vertex).setVisited(true);
 	}
 
 	/**
@@ -100,32 +97,16 @@ public class DijkstraPathFinder {
 	private List<Edge> buildPath(Vertex target) {
 		List<Edge> result = new ArrayList<>();
 
-		Edge current = getNode(target).getReachingEdge();
+		Edge current = pathTree.getNode(target).getReachingEdge();
 		do {
 			result.add(current);
-			current = getNode(current.getSource()).getReachingEdge();
+			current = pathTree.getNode(current.getSource()).getReachingEdge();
 		} while (current != null);
 
 		Collections.reverse(result);
 		return result;
 	}
 
-	/**
-	 * Prépare le graphe pour le calcul du plus court chemin
-	 * 
-	 * @param source
-	 */
-	private void initGraph(Vertex source) {
-		log.trace("initGraph({})", source);
-		for (Vertex vertex : graph.getVertices()) {
-			PathNode pathNode = new PathNode();
-			pathNode.setCost(source == vertex ? 0.0 : Double.POSITIVE_INFINITY);
-			pathNode.setReachingEdge(null);
-			pathNode.setVisited(false);
-			
-			nodes.put(vertex, pathNode);
-		}
-	}
 
 	/**
 	 * Recherche le prochain sommet à visiter. Dans l'algorithme de Dijkstra, ce
@@ -139,15 +120,15 @@ public class DijkstraPathFinder {
 		Vertex result = null;
 		for (Vertex vertex : graph.getVertices()) {
 			// sommet déjà visité?
-			if (getNode(vertex).isVisited()) {
+			if (pathTree.getNode(vertex).isVisited()) {
 				continue;
 			}
 			// sommet non atteint?
-			if (getNode(vertex).getCost() == Double.POSITIVE_INFINITY) {
+			if (pathTree.getNode(vertex).getCost() == Double.POSITIVE_INFINITY) {
 				continue;
 			}
 			// sommet le plus proche de la source?
-			if (getNode(vertex).getCost() < minCost) {
+			if (pathTree.getNode(vertex).getCost() < minCost) {
 				result = vertex;
 			}
 		}
