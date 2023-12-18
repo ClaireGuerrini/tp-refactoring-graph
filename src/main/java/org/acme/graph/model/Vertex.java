@@ -1,6 +1,10 @@
 package org.acme.graph.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.locationtech.jts.geom.Coordinate;
 
 /**
@@ -21,6 +25,18 @@ public class Vertex {
 	 * Position du sommet
 	 */
 	private Coordinate coordinate;
+	
+	/**
+	 * Arcs entrants dans le sommet
+	 */
+	@JsonIgnore
+	private List<Edge> inEdges;
+	
+	/**
+	 * Arcs sortants du sommet
+	 */
+	@JsonIgnore
+	private List<Edge> outEdges;
 
 	/**
 	 * dijkstra - coût pour atteindre le sommet
@@ -36,7 +52,8 @@ public class Vertex {
 	private boolean visited;
 
 	Vertex() {
-
+		this.inEdges = new ArrayList<>();
+		this.outEdges = new ArrayList<>();
 	}
 
 	public String getId() {
@@ -53,6 +70,14 @@ public class Vertex {
 
 	public void setCoordinate(Coordinate coordinate) {
 		this.coordinate = coordinate;
+	}
+	
+	public List<Edge> getInEdges() {
+		return inEdges;
+	}
+	
+	public List<Edge> getOutEdges() {
+		return outEdges;
 	}
 
 	@JsonIgnore
